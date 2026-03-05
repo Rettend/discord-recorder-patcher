@@ -1,5 +1,7 @@
 # Discord Recorder Patcher
 
+From: <https://soham.sh/blog/read?title=discord-rec>
+
 Reapplies the direct-stream recorder injection to Discord's `discord_voice/index.js` on Windows.
 
 This is useful after Discord updates overwrite the patched module.
