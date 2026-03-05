@@ -1,0 +1,12 @@
+{
+  "name": "discord-recorder-patcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reapply Discord direct stream recorder injection on Windows",
+  "type": "module",
+  "scripts": {
+    "status": "bun src/patch-discord-voice.js status",
+    "apply": "bun src/patch-discord-voice.js apply",
+    "restore": "bun src/patch-discord-voice.js restore"
+  }
+}
