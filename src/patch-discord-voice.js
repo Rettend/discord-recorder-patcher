@@ -191,6 +191,74 @@ function ensureHookLine(content, functionName, insertLine, afterLine, eol) {
   return content.replace(block, patchedBlock);
 }
 
+function removeImport(content, eol) {
+  const line = "const childProcess = require('child_process');";
+  if (!content.includes(line)) {
+    return content;
+  }
+
+  let out = content.replace(`${eol}${line}`, '');
+  if (out !== content) {
+    return out;
+  }
+
+  out = content.replace(`${line}${eol}`, '');
+  return out;
+}
+
+function removeStackTraceLimit(content, eol) {
+  const line = 'Error.stackTraceLimit = 100;';
+  if (!content.includes(line)) {
+    return content;
+  }
+
+  let out = content.replace(`${eol}${eol}${line}`, '');
+  if (out !== content) {
+    return out;
+  }
+
+  out = content.replace(`${eol}${line}`, '');
+  if (out !== content) {
+    return out;
+  }
+
+  out = content.replace(`${line}${eol}`, '');
+  return out;
+}
+
+function removeRecorderBlock(content, eol, block) {
+  const anchor = 'const directVideoStreams = {};';
+  const normalizedBlock = normalizeEol(block, eol);
+  const exactInsert = `${anchor}${eol}${normalizedBlock}`;
+
+  if (content.includes(exactInsert)) {
+    return content.replace(exactInsert, anchor);
+  }
+
+  if (content.includes(normalizedBlock)) {
+    return content.replace(normalizedBlock, '').replace(`${eol}${eol}${eol}`, `${eol}${eol}`);
+  }
+
+  return content;
+}
+
+function removeHookLine(content, functionName, removeLine, eol) {
+  const fnRegex = new RegExp(`VoiceEngine\\.${functionName} = function \\(streamId\\) \\{[\\s\\S]*?\\n\\};`);
+  const match = content.match(fnRegex);
+  if (match == null) {
+    return content;
+  }
+
+  const block = match[0];
+  const targetLine = `${eol}  ${removeLine}`;
+  if (!block.includes(targetLine)) {
+    return content;
+  }
+
+  const cleanedBlock = block.replace(targetLine, '');
+  return content.replace(block, cleanedBlock);
+}
+
 function buildPatchedContent(content) {
   const eol = detectEol(content);
   const recorderBlock = loadTemplate('recorder-block.js');
@@ -213,6 +281,20 @@ function buildPatchedContent(content) {
     'notifyActiveSinksChange(streamId);',
     eol,
   );
+
+  return out;
+}
+
+function buildUnpatchedContent(content) {
+  const eol = detectEol(content);
+  const recorderBlock = loadTemplate('recorder-block.js');
+
+  let out = content;
+  out = removeHookLine(out, 'addDirectVideoOutputSink', 'void startRecorder(streamId);', eol);
+  out = removeHookLine(out, 'removeDirectVideoOutputSink', 'stopRecorder(streamId);', eol);
+  out = removeRecorderBlock(out, eol, recorderBlock);
+  out = removeStackTraceLimit(out, eol);
+  out = removeImport(out, eol);
 
   return out;
 }
@@ -300,6 +382,26 @@ function runRestore() {
   info(`Restored ${targetPath} from ${selectedBackup}`);
 }
 
+function runRemove() {
+  const targetPath = resolveVoiceIndexPath();
+  ensureExists(targetPath, 'Voice module file');
+
+  const original = fs.readFileSync(targetPath, 'utf8');
+  const unpatched = buildUnpatchedContent(original);
+
+  if (unpatched === original) {
+    info(`Already unpatched: ${targetPath}`);
+    return;
+  }
+
+  const backupPath = backupPathFor(targetPath);
+  fs.copyFileSync(targetPath, backupPath);
+  fs.writeFileSync(targetPath, unpatched, 'utf8');
+
+  info(`Backup created: ${backupPath}`);
+  info(`Patch removed: ${targetPath}`);
+}
+
 switch (command) {
   case 'status':
     runStatus();
@@ -310,6 +412,9 @@ switch (command) {
   case 'restore':
     runRestore();
     break;
+  case 'remove':
+    runRemove();
+    break;
   default:
-    fail(`Unknown command "${command}". Use status, apply, or restore.`);
+    fail(`Unknown command "${command}". Use status, apply, restore, or remove.`);
 }

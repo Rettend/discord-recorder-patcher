@@ -7,6 +7,7 @@
   "scripts": {
     "status": "bun src/patch-discord-voice.js status",
     "apply": "bun src/patch-discord-voice.js apply",
-    "restore": "bun src/patch-discord-voice.js restore"
+    "restore": "bun src/patch-discord-voice.js restore",
+    "remove": "bun src/patch-discord-voice.js remove"
   }
 }
