@@ -32,6 +32,14 @@ From this folder:
 bun run status
 bun run apply
 bun run status
+bun run remove
+bun run status
+```
+
+To remove only the injected recorder patch in-place:
+
+```powershell
+bun run remove
 ```
 
 To restore latest backup:
